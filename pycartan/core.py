@@ -23,53 +23,6 @@ from functools import reduce
 
 from ipydex import IPS  # for debugging
 
-# TODO: compare to
-# from sympy.functions.special.tensor_functions import eval_levicivita
-def sign_perm(perm):
-    """
-    :param perm:
-    :return: the sign of a permutation (-1 or 1)
-    examples:  [0, 1, 2] -> 1;
-               [1, 0, 2]) -> -1
-               [1, 0, 3]) -> -1
-    """
-    perm = range_indices(perm)  # prevent problems with non consecutive indices
-    Np = len(np.array(perm))
-    sgn = 1
-    for n in range(Np - 1):
-        for m in range(n + 1, Np):
-            sgn *= 1. * (perm[m] - perm[n]) / (m - n)
-    sgn = int(sgn)
-
-    assert sgn in (-1, 1), "error %s" % perm
-
-    return sgn
-
-
-# TODO: duplicate of sign_perm
-def perm_parity(seq):
-    """
-    Given a permutation of the digits 0..N in order as a list,
-    returns its parity (or sign): +1 for even parity; -1 for odd.
-    """
-    # adapted from http://code.activestate.com/
-    # recipes/578227-generate-the-parity-or-sign-of-a-permutation/
-    # by Paddy McCarthy
-    lst = range_indices(seq)  # normalize the sequence to the first N integers
-    parity = 1
-    index_list = list(range(len(lst)))
-    for i in range(0, len(lst) - 1):
-        if lst[i] != i:
-            # there must be a smaller number in the remaining list
-            # -> perform an exchange
-            #            print i, lst
-            mn = np.argmin(lst[i:]) + i
-            lst[i], lst[mn] = lst[mn], lst[i]
-            #            print mn, lst
-            parity *= -1
-    return parity
-
-
 def range_indices(seq):
     """
     returns a tuple which represents the same permutation
@@ -273,14 +226,18 @@ class DifferentialForm(CantSympify):
 
     # TODO: Should be reformulated as _get_canonical_signed_index
     def __getindexperm__(self, ind):
-        """ Liefert den 1d-Index und das Vorzeichen der Permutation"""
+        """
+        Liefert den 1d-Index und das Vorzeichen der Permutation
+        """
+
+        from sympy.combinatorics import Permutation
+
         if len(ind) == 1:
             ind_1d = self.indizes.index(tuple(ind))
             sgn = 1
         else:
             srt_arr = np.argsort(ind)
-            #vz = sign_perm(srt_arr)
-            sgn = perm_parity(srt_arr)
+            sgn = Permutation(srt_arr).signature()
             ind_1d = self.indizes.index(tuple(ind[srt_arr]))
         return ind_1d, sgn
 
@@ -644,14 +601,17 @@ class DifferentialForm(CantSympify):
         """
         returns the hodge dual of this form
 
-        assumptions: scalar product is given by identity matrix (implies signature 0)
+        assumptions: scalar product is given by identity matrix (implies
+        signature 0)
 
-        Background: see Chapter 1, example 2 in Agricola, Friedrich: Global Analysis -
-        Differential Forms in Analysis, Geometry and Physics.
+        Background: see Chapter 1, example 2 in Agricola, Friedrich: Global
+        Analysis - Differential Forms in Analysis, Geometry and Physics.
         """
 
-        # for every coeff we need its index-tuple I and the complementrary index-tuple J
-        # and then the signature
+        from sympy.combinatorics import Permutation
+
+        # for every coeff we need its index-tuple I and the complementrary
+        # index-tuple J and then the signature
 
         all_indices = set(range(self.dim_basis))
         result = DifferentialForm(self.dim_basis - self.grad, self.basis)
@@ -661,7 +621,7 @@ class DifferentialForm(CantSympify):
             permutation = list(I)
             permutation.extend(J)
 
-            s = sign_perm(permutation)
+            s = Permutation(permutation).signature()
             result[J] = s*self[I]
 
         return result
@@ -1494,6 +1454,13 @@ def wp2(*args):
 
 
 def wp(a, b, *args):
+
+    """
+    Wedge product?
+    """
+
+    from sympy.combinatorics import Permutation
+
     assert a.basis == b.basis
     N = len(a.basis)
     DEG = a.grad + b.grad
@@ -1512,7 +1479,7 @@ def wp(a, b, *args):
     for (ca, ia), (cb, ib) in Prod:
         if not set(ia).intersection(ib):
             i_new = ia + ib
-            s = perm_parity(i_new)
+            s = Permutation(i_new).signature()
 
             i_new = tuple(sorted(i_new))
             basis_index = new_base_tuples.index(i_new)
