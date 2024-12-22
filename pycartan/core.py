@@ -21,7 +21,6 @@ import symbtools.noncommutativetools as nct
 from symbtools import lzip
 from functools import reduce
 
-from ipydex import IPS  # for debugging
 
 def range_indices(seq):
     """
@@ -53,13 +52,13 @@ def range_indices(seq):
 
 
 class DifferentialForm(CantSympify):
+
     def __init__(self, n, basis, coeff=None, name=None):
         """
         :n: degree (e.g. 0-form, 1-form, 2-form, ... )
         :basis: list of basis coordinates (Symbols)
         :coeff: coefficient vector for initilization (defualt: [0, ..., 0])
         :name: optional Name
-
         """
 
         self.grad = n
@@ -70,7 +69,7 @@ class DifferentialForm(CantSympify):
             self.indizes = [(0,)]
         else:
             # this is a list like [(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)]
-            #TODO: this should be renamed to index_tuples
+            # TODO: this should be renamed to index_tuples
             self.indizes = list(combinations(list(range(self.dim_basis)), self.grad))
 
         # number of coefficient
@@ -104,7 +103,7 @@ class DifferentialForm(CantSympify):
         return self.indizes
 
     def __repr__(self):
-        #return self.ausgabe()
+        # return self.ausgabe()
         return self.to_str()
 
     def __add__(self, a):
@@ -121,7 +120,8 @@ class DifferentialForm(CantSympify):
         return self + (m * (-1))
 
     def __rmul__(self, f):
-        """multiplication from the left (reverse mul) -> f*self
+        """
+        Multiplication from the left (reverse mul) -> f*self
         This method provides wedge-product and scalar multiplication
 
         see also docstring of `__mul__`
@@ -155,7 +155,10 @@ class DifferentialForm(CantSympify):
             new_form.coeff = self.coeff * f
             return new_form
         else:
-            msg = "Multiplication not implemented for types: %s and %s" % ( type(self), type(f) )
+            msg = (
+                f"Multiplication not implemented for types: {type(self)} and "
+                f"{type(f)}"
+            )
             raise TypeError(msg)
 
     def __div__(self, arg):
@@ -172,7 +175,6 @@ class DifferentialForm(CantSympify):
             raise TypeError(msg)
 
         return (1/arg)*self
-
 
     def __xor__(self, f):
         """
@@ -348,7 +350,7 @@ class DifferentialForm(CantSympify):
         res = DifferentialForm(self.grad, new_basis)
         k = self.coeff.subs(zip(self.basis, Psi))
 
-        if Psi_jac == None:
+        if Psi_jac is None:
             Psi_jac = Psi.jacobian(new_basis)
 
         k_new = (k.T * Psi_jac).T
@@ -359,7 +361,9 @@ class DifferentialForm(CantSympify):
 
     @property
     def ord(self):
-        """returns the highest differential order of the highest nonzero coefficient
+        """
+        Returns the highest differential order of the highest nonzero
+        coefficient
 
         example: w=(dx1^dxdot1) + (dx2^dxdddot1)
            w.ord -> 3
@@ -370,7 +374,8 @@ class DifferentialForm(CantSympify):
         if len(nzt) == 0:
             return 0
 
-        # get the highest scalar index (basis index) which occurs in any nonzero index tuple
+        # get the highest scalar index (basis index) which occurs in any
+        # nonzero index tuple
 
         nz_idx_array = np.array(lzip(*nzt)[1])
         highest_base_index = np.max(nz_idx_array)
@@ -378,7 +383,6 @@ class DifferentialForm(CantSympify):
         res = int(highest_base_index/base_length)
 
         return res
-
 
     def get_coeff(self, base_form):
         """
@@ -410,8 +414,8 @@ class DifferentialForm(CantSympify):
 
     def get_baseform_from_idcs(self, idcs):
         """
-        Expects an N-tuple of integers and returns the baseform of self corresponding
-        to that index tuple.
+        Expects an N-tuple of integers and returns the baseform of self
+        corresponding to that index tuple.
 
         :param idcs:
         :return:
@@ -504,18 +508,20 @@ class DifferentialForm(CantSympify):
         """
 
         if not latex:
-            coord_strings = ["d"+ (self.basis[i]).name for i in idcs]
+            coord_strings = ["d" + (self.basis[i]).name for i in idcs]
             product_string = "^".join(coord_strings)
         else:
-            coord_strings = [r"\d "+ (latex(self.basis[i])) for i in idcs]
+            coord_strings = [r"\d " + (latex(self.basis[i])) for i in idcs]
             product_string = r"\wedge".join(coord_strings)
         return product_string
-
 
     def to_str(self):
         if self.grad == 0:
             return str(self.coeff[0])
-        nztuples = [(idcs, coeff) for idcs, coeff in zip(self.indices, self.coeff) if coeff != 0]
+        nztuples = [
+            (idcs, coeff) for idcs, coeff
+            in zip(self.indices, self.coeff) if coeff != 0
+        ]
 
         if self.grad > self.dim_basis:
             coord_strings = ['d'+self.basis[0].name] * self.grad
@@ -523,7 +529,7 @@ class DifferentialForm(CantSympify):
 
         res_strings = []
         for idcs, coeff in nztuples:
-            tmp_str = "(%s)%s" %(str(coeff), self._idcs_to_str(idcs) )
+            tmp_str = "(%s)%s" %(str(coeff), self._idcs_to_str(idcs))
             res_strings.append(tmp_str)
 
         if len(res_strings) == 0:
@@ -539,7 +545,7 @@ class DifferentialForm(CantSympify):
 
         res_strings = []
         for idcs, coeff in nztuples:
-            tmp_str = "%s %s" %(latex_func(coeff), self._idcs_to_str(idcs, latex=latex_func) )
+            tmp_str = "%s %s" %(latex_func(coeff), self._idcs_to_str(idcs, latex=latex_func))
             res_strings.append(tmp_str)
 
         if len(res_strings) == 0:
@@ -675,7 +681,7 @@ class DifferentialForm(CantSympify):
             result = sp.simplify(r + IC)
 
         # final test: take the exterior derivative and compare to self
-        result_d_coeff = sp.simplify( d(result, self.basis).coeff )
+        result_d_coeff = sp.simplify(d(result, self.basis).coeff)
         self_coeff = sp.simplify(self.coeff)
         if not result_d_coeff == self_coeff:
             msg = "Unexpected final result while calculating integration constants"
@@ -694,7 +700,9 @@ class DifferentialForm(CantSympify):
 
         """
 
-        if not self.grad == 1: raise NotImplementedError("not yet supported")
+        if not self.grad == 1:
+            raise NotImplementedError("not yet supported")
+
         assert vf.shape == self.coeff.shape
         res = self.coeff.T * vf
         return res[0, 0]
@@ -736,11 +744,11 @@ class DifferentialForm(CantSympify):
         after application of this method we have
         self = a*dx1 + b*dx2 + 0*dxdot1 + 0*dxdot2
 
-        This is needed in the context of differential forms,
-        defined on jet bundles, where d/dt (self) the coefficients might
-        depend on (time-) derivatives of the basis coordinates, e.g a = 3*xdot1.
-        To properly calculate self.d (the extrerior derivative) the basis must be
-        prepared for components 'in direction of' dxdot1
+        This is needed in the context of differential forms, defined on jet
+        bundles, where d/dt (self) the coefficients might depend on (time-)
+        derivatives of the basis coordinates, e.g a = 3*xdot1. To properly
+        calculate self.d (the extrerior derivative) the basis must be prepared
+        for components 'in direction of' dxdot1
         """
         old_basis = sp.Matrix(self.basis)
         old_coeff = self.coeff
@@ -776,7 +784,7 @@ class DifferentialForm(CantSympify):
 
         new_basis = st.row_stack(old_basis, new_highest_derivs)
 
-        new_form  = DifferentialForm(self.degree, new_basis)
+        new_form = DifferentialForm(self.degree, new_basis)
         self.basis = new_basis
         self.dim_basis = len(new_basis)
         self.indizes = new_form.indices
@@ -786,7 +794,7 @@ class DifferentialForm(CantSympify):
         for idx_tup in self.indices:
             if idx_tup in old_indices:
                 # get the index of the index-tuple
-                meta_idx =  old_indices.index(idx_tup)
+                meta_idx = old_indices.index(idx_tup)
                 c = old_coeff[meta_idx]
             else:
                 c = 0
@@ -798,15 +806,19 @@ class DifferentialForm(CantSympify):
         # i.e. basis = [x1, x2, x3, xdot1, xdot2, xdot3]
         diff_order_list = [b.difforder for b in self.basis]
         do_max = max(diff_order_list)
-        base_length = int(self.dim_basis / (do_max + 1)  )
+        base_length = int(self.dim_basis / (do_max + 1))
         # base_length ≙ 3 in the above example
 
-        expected_diff_order_list = [int(k/base_length) for k in range(self.dim_basis)]
+        expected_diff_order_list = [
+            int(k/base_length) for k in range(self.dim_basis)
+        ]
 
         if not diff_order_list == expected_diff_order_list:
-            msg = "the structure of the basis variables is not like expected. \n"
-            msg += "Got:      %s\n" % diff_order_list
-            msg += "Expected: %s\n" % expected_diff_order_list
+            msg = (
+                "the structure of the basis variables is not like expected. \n"
+                f"Got:      {diff_order_list}\n"
+                f"Expected: {expected_diff_order_list}\n"
+            )
             raise ValueError(msg)
 
         return base_length
@@ -824,7 +836,9 @@ class DifferentialForm(CantSympify):
         """
 
         if not self.degree <= 2:
-            raise NotImplementedError(".dot only tested for degree <= 2, might work however")
+            raise NotImplementedError(
+                ".dot only tested for degree <= 2, might work however"
+            )
 
         base_length = self._calc_base_length()
 
@@ -835,7 +849,10 @@ class DifferentialForm(CantSympify):
         res = DifferentialForm(self.degree, self.basis)  # create a zero form
 
         # get nonzero coeffs and their indices
-        nz_tups = [(idx_tup, c) for idx_tup, c in zip(self.indices, self.coeff) if c != 0]
+        nz_tups = [
+            (idx_tup, c) for idx_tup, c
+            in zip(self.indices, self.coeff) if c != 0
+        ]
 
         if len(nz_tups) == 0:
             # this form is already zero
@@ -860,13 +877,16 @@ class DifferentialForm(CantSympify):
         # difference set
         ds = set(nz_coords_diff).difference(self.basis)
         if ds:
-            msg = "The time derivative of this form cannot be calculated. "\
-                  "The following necessary coordinates are not part of self.basis: %s" % ds
+            msg = (
+                "The time derivative of this form cannot be calculated. "
+                "The following necessary coordinates are not part of "
+                f"self.basis: {ds}"
+            )
             raise ValueError(msg)
 
         # get new indices:
         basis_list = list(self.basis)
-        #diff_idcs = [basis_list.index(c) for c in nz_coords_diff]
+        # diff_idcs = [basis_list.index(c) for c in nz_coords_diff]
 
         # assume self = a*dx1^dx3
         # result: self.dot = adot*dx1^dx3 + a*dxdot1^dx3 + a*dx1^dxdot3
@@ -877,7 +897,9 @@ class DifferentialForm(CantSympify):
 
         # now for every coordinate find the basis-index of its derivative, e.g.
         # if basis is x1, x2, x3 the index of xdot2 is 4
-        # set the original coeff to the corresponding place (a*dxdot1^dx3 + a*dx1^dxdot3)
+        # set the original coeff to the corresponding place
+        # (a*dxdot1^dx3 + a*dx1^dxdot3)
+
         for idx_tup, c in zip(idx_tups, coeffs):
             for j, idx in enumerate(idx_tup):
                 # convert to mutable data type (list instead of tuple)
@@ -890,8 +912,10 @@ class DifferentialForm(CantSympify):
         return res
 
     def count_ops(self, *args, **kwargs):
-        """Utility that returns a form of the same basis and degree as self
-        where the coeffs are numbers corresponding to the application of count_ops to self.coeff.
+        """
+        Utility that returns a form of the same basis and degree as self where
+        the coeffs are numbers corresponding to the application of count_ops to
+        self.coeff.
         """
 
         coeff_co = st.count_ops(self.coeff, *args, **kwargs)
@@ -949,7 +973,7 @@ class VectorDifferentialForm(CantSympify):
         # (assure that our __rmul__ is called by M.__mul__)
         self._op_priority = 10.02
 
-        if not coeff==None:
+        if not coeff == None:
             self.coeff = coeff
             self.m, self.n = coeff.shape
         else:
@@ -963,7 +987,7 @@ class VectorDifferentialForm(CantSympify):
             self._w.append(wi)
 
     def __repr__(self):
-        if self.basis_forms_str==None:
+        if self.basis_forms_str == None:
             basis_forms = "\"dX\""
         else:
             basis_forms = self.basis_forms_str
@@ -990,7 +1014,7 @@ class VectorDifferentialForm(CantSympify):
         if not st.is_scalar(a):
             msg = "Multiplication of %s and %s not (currently) not allowed. " \
                   "Maybe use .left_mul_by(...)."
-            msg = msg %(type(self), type(a))
+            msg = msg % (type(self), type(a))
             raise TypeError(msg)
 
         new_vector_form = VectorDifferentialForm(self.degree, self.basis)
@@ -1000,16 +1024,17 @@ class VectorDifferentialForm(CantSympify):
 
     def __rmul__(self, a):
         """
-        called if self is the right operand and the __mul__ method of the left was
-        absent or raised NotImplementedError.
+        called if self is the right operand and the __mul__ method of the left
+        was absent or raised NotImplementedError.
 
         :param a:
         :return:
         """
         if not st.is_scalar(a):
-            msg = "Reverse multiplication of %s and %s not (currently) not allowed. " \
-                  "Maybe use .left_mul_by(...)."
-            msg = msg %(type(self), type(a))
+            msg = (
+                "Reverse multiplication of %s and %s not (currently) not "
+                "allowed. Maybe use .left_mul_by(...). {type(self), type(a)}"
+            )
             raise TypeError(msg)
 
         new_vector_form = VectorDifferentialForm(self.degree, self.basis)
@@ -1051,7 +1076,11 @@ class VectorDifferentialForm(CantSympify):
         assert n1 == self.m, "Matrix Dimesion does not fit vector form!"
 
         # right shift s:
-        matrix_shifted = nct.right_shift_all(matrix, s=s, func_symbols=additional_symbols)
+        matrix_shifted = nct.right_shift_all(
+            matrix,
+            s=s,
+            func_symbols=additional_symbols
+        )
 
         # if s is of higher order, raise not implemented
         if s is not None and matrix_shifted.diff(s).has(s):
@@ -1099,7 +1128,7 @@ class VectorDifferentialForm(CantSympify):
         return self.coeff.col(idcs)
 
     def append(self, k_form):
-        assert k_form.degree==self.degree, "Degrees of vector forms do not match."
+        assert k_form.degree == self.degree, "Degrees of vector forms do not match."
 
         if isinstance(k_form, DifferentialForm):
             rows = k_form.coeff.T
@@ -1113,6 +1142,7 @@ class VectorDifferentialForm(CantSympify):
         matrix = self.coeff.subs(*args, **kwargs)
         new_vector_form = VectorDifferentialForm(self.degree, self.basis, coeff=matrix)
         return new_vector_form
+
 
 def stack_to_vector_form(*arg):
     """
@@ -1132,6 +1162,7 @@ def stack_to_vector_form(*arg):
             coeff_matrix = st.row_stack(coeff_matrix, coeff_matrix_i)
 
         return VectorDifferentialForm(k, XX, coeff=coeff_matrix)
+
 
 def coeff_ido_derivorder(sigma, *factors, **kwargs):
     """
@@ -1199,11 +1230,11 @@ def coeff_ido_derivorder(sigma, *factors, **kwargs):
     assert (min_do + 1) in deriv_orders, msg
     n = deriv_orders.index(min_do + 1)
     assert len(deriv_orders) % n == 0
-    #groups = []
+    # groups = []
     for i in range(int(len(deriv_orders)/n)):
         tmp_group = deriv_orders[n*i: n*(i+1)]
         msg2 = "All group elements are expected to be identical"
-        assert all( elt == tmp_group[0] for elt in tmp_group), msg2
+        assert all(elt == tmp_group[0] for elt in tmp_group), msg2
 
     msg3 = "Unexpected distribution of derivorders (like e.g. [0,0,2,2]): "
     msg3 += str(deriv_orders)
@@ -1221,19 +1252,21 @@ def coeff_ido_derivorder(sigma, *factors, **kwargs):
             msg4 = "Uexpected high index in sigma: %s." % str(sigma)
             raise ValueError(msg4)
 
-        deriv_orders_of_sigma.append( extended_deriv_orders[idx] )
+        deriv_orders_of_sigma.append(extended_deriv_orders[idx])
 
     # do we need to call jet_extend_basis onb the factors?
-    cond1 = all( idx in (max_do, max_do - 1) for idx in deriv_orders_of_sigma)
-    cond2 = all( idx in (max_do + 1, max_do) for idx in deriv_orders_of_sigma)
+    cond1 = all(idx in (max_do, max_do - 1) for idx in deriv_orders_of_sigma)
+    cond2 = all(idx in (max_do + 1, max_do) for idx in deriv_orders_of_sigma)
 
     if cond1:
         jeb_flag = False
     elif cond2:
         jeb_flag = True
     else:
-        msg5 = "Only indices which correspond to the highest or second highest "\
-               "deriv_order are allowed in sigma."
+        msg5 = (
+            "Only indices which correspond to the highest or second highest "
+            "deriv_order are allowed in sigma."
+        )
         raise ValueError(msg5)
 
     zeta_dot_list = []
@@ -1256,7 +1289,7 @@ def coeff_ido_derivorder(sigma, *factors, **kwargs):
 
         if jeb_flag:
             zeta.jet_extend_basis()
-            mu = mu*1 # make a copy
+            mu = mu*1  # make a copy
             mu.jet_extend_basis()
 
         for i, c in enumerate(mu.coeff):
@@ -1265,7 +1298,7 @@ def coeff_ido_derivorder(sigma, *factors, **kwargs):
                 continue
 
             S_tmp = next(gen_S)
-            replacements_S.append( (S_tmp, c) )
+            replacements_S.append((S_tmp, c))
             S_list.append(S_tmp)
             zeta.coeff[i] = S_tmp
 
@@ -1277,7 +1310,7 @@ def coeff_ido_derivorder(sigma, *factors, **kwargs):
         Z = Z*zeta_dot
 
     # Step 4:
-    #sigma_plus_nn = tuple((elt + n for elt in sigma))
+    # sigma_plus_nn = tuple((elt + n for elt in sigma))
 
     c_res0 = Z.get_coeff_from_idcs(sigma)
 
@@ -1368,7 +1401,7 @@ def _contract_vf_with_basis_form(vf, idx_tuple):
     return res
 
 
-#TODO: unit tests (yet only checked for 2- and 3-forms)
+# TODO: unit tests (yet only checked for 2- and 3-forms)
 def contraction(vf, form):
     """
     performs the interior product of a vector field v and a p-form A
@@ -1406,6 +1439,7 @@ def contraction(vf, form):
 
     return result
 
+
 def simplify(arg, **kwargs):
     """
     Simplification Function which is aware of (Vector)DifferentialForms
@@ -1417,7 +1451,6 @@ def simplify(arg, **kwargs):
         return copy
     else:
         return sp.simplify(arg, **kwargs)
-
 
 
 # Keilprodukt zweier Differentialformen
@@ -1449,7 +1482,10 @@ def keilprodukt(df1, df2):
 
 
 def wp2(*args):
-    """wedge product"""
+    """
+    wedge product
+    """
+
     return reduce(keilprodukt, args)
 
 
@@ -1536,6 +1572,7 @@ def setup_objects(n):
 
     return xx, bf
 
+
 # for backward compatibility
 diffgeo_setup = setup_objects
 
@@ -1551,7 +1588,7 @@ def _test_pull_back_to_sphere():
     xx = x1, x2 = sp.symbols("x1:3")
 
     F = y1 ** 2 + y2 ** 2 + y3 ** 2
-    omega = dF = d(F, yy)
+    omega = d(F, yy)
     # spherical coordinates:
     from sympy import sin, cos
 
@@ -1571,11 +1608,9 @@ def _main():
     dxx = basis_1forms(xx)
 
     dx1, dx2, dx3, dx4, dx5 = dxx
-    t = wp(dx1, xx[4] * dx2)
 
     IPS()
 
 
 if __name__ == "__main__":
     _test_pull_back_to_sphere()
-    #_main()
